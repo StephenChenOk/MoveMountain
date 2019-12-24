@@ -3,16 +3,13 @@ package com.chen.fy.movemountain;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
+import android.view.animation.ScaleAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.HorizontalBarChart;
 import com.github.mikephil.charting.components.Legend;
@@ -26,8 +23,15 @@ import com.lxj.xpopup.XPopup;
 import com.lxj.xpopup.interfaces.XPopupCallback;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+
+    private TextView tvContent;
+    private RadioButton rbShou;
+    private RadioButton rbChan;
+    private RadioButton rbChe;
+    private RadioButton rbWaJueJi;
 
     private ImageView ivMountain;
     private Button btnMove;
@@ -38,22 +42,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private int mTotalWeight;
     //山剩余的权值
     private int mRemainWeight;
-    //当前山的宽高
-    private int mMountainWidth;
-    private int mMountainHeight;
-
-    //原始山的宽高
-    private int mFirstWidth;
-    private int mFirstHeight;
-
-    //是否是原始的山大小
-    private boolean isFirst = true;
 
     //y轴最大值
     private float chartWeight;
 
     //移山次数
     int moveTimes;
+
+    //山大小的缩放大小起始设置
+    private float fromX;
+    private float fromY;
+    private float toX;
+    private float toY;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,52 +64,59 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void initView() {
+
+        UiUtils.changeStatusBarTextImgColor(this, true);
+
+        tvContent = findViewById(R.id.tv_content);
+        rbShou = findViewById(R.id.rb_shou);
+        rbChan = findViewById(R.id.rb_chan);
+        rbChe = findViewById(R.id.rb_che);
+        rbWaJueJi = findViewById(R.id.rb_wa_jue_ji);
+
         ivMountain = findViewById(R.id.iv_mountain);
         btnMove = findViewById(R.id.btn_move);
 
         btnMove.setOnClickListener(this);
 
+        rbShou.setOnClickListener(this);
+        rbChan.setOnClickListener(this);
+        rbChe.setOnClickListener(this);
+        rbWaJueJi.setOnClickListener(this);
+
     }
 
     private void initWeight() {
-        mTotalWeight = 9999;
 
-        mRemainWeight = mTotalWeight;
+        Random random = new Random(System.currentTimeMillis());
+        mTotalWeight = random.nextInt(900);
 
-        mMountainWidth = 400;
-        mMountainHeight = 400;
+        mRemainWeight = mTotalWeight + 50;
 
-        chartWeight = mTotalWeight + 500;
+        chartWeight = mRemainWeight + 100;
 
         moveTimes = 0;
+
+        fromX = 1.0f;
+        fromY = 1.0f;
+        toX = (float) (fromX - 0.2);
+        toY = (float) (fromY - 0.2);
     }
 
     /**
      * 减少山的大小
      */
-    private void reduceMountain() {
+    private void reduceMountain(double reduceWeight) {
 
         moveTimes++;
 
-        //减少的权值
-        int i = getIndex(mRemainWeight);
-        double temp = mRemainWeight - Math.pow(2, i);
-
-        //宽高的缩小比例
-        double reduceRadio = temp / mRemainWeight;
-
         //剩余的权值
-        mRemainWeight = (int) temp;
-
-        Log.d("chenyisheng", reduceRadio + "");
-
-        //山此时的宽高
-        mMountainWidth = (int) (mMountainWidth * reduceRadio);
-        mMountainHeight = (int) (mMountainHeight * reduceRadio);
+        mRemainWeight = (int) (mRemainWeight - reduceWeight);
 
         //设置山体布局
-        if (reduceRadio == 0) {
-            gameOver();
+        if (mRemainWeight == 0) {
+            ivMountain.clearAnimation();
+            ivMountain.setVisibility(View.GONE);
+            gameOver(true);
         } else {
             setMountainLayout();
         }
@@ -118,85 +125,114 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setData();
     }
 
-    private Handler handler = new Handler(Looper.getMainLooper()) {
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            switch (msg.what) {
-                case 0:
-                    ivMountain.setLayoutParams(layoutParams);
-                    break;
-            }
+    private void selectTool(int i) {
+        switch (i) {
+            case 0:
+            case 1:
+            case 2:     //8
+                rbShou.setChecked(true);
+                tvContent.setText(UiUtils.highLightText("正在手工进行移山", "手工"));
+                break;
+            case 3:
+            case 4:     //16
+                rbChan.setChecked(true);
+                tvContent.setText(UiUtils.highLightText("正在使用铲子进行移山", "铲子"));
+                break;
+            case 5:
+            case 6:     //64
+                rbChe.setChecked(true);
+                tvContent.setText(UiUtils.highLightText("正在使用运泥车进行移山", "运泥车"));
+                break;
+            default:
+                rbWaJueJi.setChecked(true);
+                tvContent.setText(UiUtils.highLightText("正在使用挖掘机进行移山", "挖掘机"));
         }
-    };
-
-    private ViewGroup.LayoutParams layoutParams;
+    }
 
     private void setMountainLayout() {
 
-        Animation animation = AnimationUtils.loadAnimation(this, R.anim.tween_scale);
-        animation.setFillAfter(true);
-        ivMountain.startAnimation(animation);
-
-        if (isFirst) {
-            mFirstWidth = ivMountain.getWidth();
-            mFirstHeight = ivMountain.getHeight();
-            isFirst = false;
-        }
-        layoutParams = ivMountain.getLayoutParams();
-
         switch (moveTimes) {
             case 0:
-                layoutParams.width = mFirstWidth;
-                layoutParams.height = mFirstHeight;
+                startAnimation(0, 1, 0, 1);
                 break;
             case 1:
-                layoutParams.width = mMountainWidth + 250;
-                layoutParams.height = mMountainHeight + 250;
+                startAnimation(fromX, toX, fromY, toY);
+                fromX = toX;
+                toX = (float) (fromX - 0.2);
+                fromY = toY;
+                toY = (float) (fromY - 0.2);
                 break;
             case 2:
-                layoutParams.width = mMountainWidth + 200;
-                layoutParams.height = mMountainHeight + 200;
+                startAnimation(fromX, toX, fromY, toY);
+                fromX = toX;
+                toX = (float) (fromX - 0.15);
+                fromY = toY;
+                toY = (float) (fromY - 0.15);
+
                 break;
             case 3:
-                layoutParams.width = mMountainWidth + 150;
-                layoutParams.height = mMountainHeight + 150;
+                startAnimation(fromX, toX, fromY, toY);
+                fromX = toX;
+                toX = (float) (fromX - 0.12);
+                fromY = toY;
+                toY = (float) (fromY - 0.12);
+
                 break;
             case 4:
-                layoutParams.width = mMountainWidth + 120;
-                layoutParams.height = mMountainHeight + 120;
+                startAnimation(fromX, toX, fromY, toY);
+                fromX = toX;
+                toX = (float) (fromX - 0.10);
+                fromY = toY;
+                toY = (float) (fromY - 0.10);
+
+                break;
             case 5:
-                layoutParams.width = mMountainWidth + 100;
-                layoutParams.height = mMountainHeight + 100;
+                startAnimation(fromX, toX, fromY, toY);
+                fromX = toX;
+                toX = (float) (fromX - 0.08);
+                fromY = toY;
+                toY = (float) (fromY - 0.08);
+
                 break;
             case 6:
-                layoutParams.width = mMountainWidth + 80;
-                layoutParams.height = mMountainHeight + 80;
             case 7:
-                layoutParams.width = mMountainWidth + 60;
-                layoutParams.height = mMountainHeight + 60;
+                startAnimation(fromX, toX, fromY, toY);
+                fromX = toX;
+                toX = (float) (fromX - 0.05);
+                fromY = toY;
+                toY = (float) (fromY - 0.05);
+
                 break;
             case 8:
-                layoutParams.width = mMountainWidth + 45;
-                layoutParams.height = mMountainHeight + 45;
-                break;
             case 9:
-                layoutParams.width = mMountainWidth + 30;
-                layoutParams.height = mMountainHeight + 30;
-                break;
             default:
-                layoutParams.width = mMountainWidth + 10;
-                layoutParams.height = mMountainHeight + 10;
+                startAnimation(fromX, toX, fromY, toY);
+                fromX = toX;
+                toX = (float) (fromX - 0.02);
+                fromY = toY;
+                toY = (float) (fromY - 0.02);
         }
-        handler.sendEmptyMessageDelayed(0,2000);
-        //ivMountain.setLayoutParams(layoutParams);
+
     }
 
+    //设置动画效果
+    private void startAnimation(float fromX, float toX, float fromY, float toY) {
+        ScaleAnimation scaleAnimation = new ScaleAnimation(fromX, toX, fromY, toY,
+                ivMountain.getPivotX(), ivMountain.getPivotY());
+        scaleAnimation.setDuration(2000);
+        scaleAnimation.setFillAfter(true);
+        ivMountain.startAnimation(scaleAnimation);
+
+//        AnimationDrawable animationDrawable = (AnimationDrawable) getResources().getDrawable(R.drawable.man_play);
+//        //ivMan.setImageDrawable(animationDrawable);
+//        animationDrawable.start();
+//        animationDrawable.setOneShot(true);  //播放一次
+    }
 
     private void setData() {
 
         //柱子大小
-        float barWidth = 2.5f;
+        float barWidth = 2.7f;
         //柱子间间隔
         float spaceForBar = 3f;
         //柱子初始化
@@ -231,12 +267,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     //获取距离目标最近的2的多少次方
-    private int getIndex(int temp) {
+    private int getIndex(int remain) {
         int i = -1;
         while (true) {
             i++;
             int f = (int) Math.pow(2, i);
-            if (f > temp) {
+            if (f > remain) {
                 i--;
                 break;
             }
@@ -245,11 +281,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     //移山结束，点击可以重新开始
-    private void gameOver() {
-        ivMountain.setVisibility(View.GONE);
-        new XPopup.Builder(this)
+    private void gameOver(boolean isFinish) {
+
+        XPopup.Builder builder = new XPopup.Builder(this)
                 .isCenterHorizontal(true)
-                .offsetY(200)
+                .offsetY(800)
                 .setPopupCallback(new XPopupCallback() {
                     @Override
                     public void onCreated() {
@@ -262,8 +298,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     @Override
                     public void onDismiss() {
                         initWeight();
-                        setData();
                         setMountainLayout();
+                        setData();
                         ivMountain.setVisibility(View.VISIBLE);
                     }
 
@@ -271,9 +307,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     public boolean onBackPressed() {
                         return false;
                     }
-                })
-                .asCustom(new GameOverPopup(this))
-                .show();
+
+                });
+        if (isFinish) {
+            builder.asCustom(new MoveFinishedPopup(this))
+                    .show();
+        }else{
+            builder.asCustom(new GameOverPopup(this))
+                    .show();
+        }
     }
 
     private void initBar() {
@@ -307,37 +349,78 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         xl.setGranularity(10f);
 
         YAxis yl = chart.getAxisLeft();
-        yl.setPosition(YAxis.YAxisLabelPosition.OUTSIDE_CHART);
-        yl.setDrawAxisLine(false);
+        yl.setDrawAxisLine(true);
         yl.setDrawGridLines(false);
         yl.setAxisMinimum(0f);
         yl.setAxisMaximum(chartWeight);  //设置y轴最大值
 
         YAxis yr = chart.getAxisRight();
         yr.setDrawAxisLine(true);
-        yr.setDrawGridLines(false);
+        yr.setDrawGridLines(true);
         yr.setAxisMinimum(0f);
+        yr.setAxisMaximum(chartWeight);  //设置y轴最大值
 
         chart.setFitBars(true);
-        chart.animateY(2000);
+        chart.animateY(1000);
 
         Legend l = chart.getLegend();
         l.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
         l.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
         l.setOrientation(Legend.LegendOrientation.HORIZONTAL);
         l.setDrawInside(false);
-        l.setFormSize(7f);
+        l.setFormSize(8f);
         l.setXEntrySpace(4f);
 
-        initWeight();
         setData();
     }
+
+    //工具最多可以挖的权值
+    private int shouIndex = 2;      //4
+    private int chanIndex = 4;      //16
+    private int cheIndex = 6;       //64
+    private int waJueJiIndex = 8;        //256
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_move:
-                reduceMountain();
+                //reduceMountain();
+                break;
+            case R.id.rb_shou:
+                if (shouIndex > getIndex(mRemainWeight)) {
+                    reduceMountain(mRemainWeight);
+                } else {
+                    reduceMountain(Math.pow(2, shouIndex));
+                }
+                tvContent.setText(UiUtils.highLightText("正在手工进行移山", "手工"));
+
+                break;
+            case R.id.rb_chan:
+                if (chanIndex > getIndex(mRemainWeight)) {
+                    gameOver(false);
+                } else {
+                    reduceMountain(Math.pow(2, chanIndex));
+                    tvContent.setText(UiUtils.highLightText("正在使用铲子进行移山", "铲子"));
+                }
+
+                break;
+            case R.id.rb_che:
+                if (cheIndex > getIndex(mRemainWeight)) {
+                    gameOver(false);
+                } else {
+                    reduceMountain(Math.pow(2, cheIndex));
+                    tvContent.setText(UiUtils.highLightText("正在使用运泥车进行移山", "运泥车"));
+                }
+
+                break;
+            case R.id.rb_wa_jue_ji:
+                if (waJueJiIndex > getIndex(mRemainWeight)) {
+                    gameOver(false);
+                } else {
+                    reduceMountain(Math.pow(2, waJueJiIndex));
+                    tvContent.setText(UiUtils.highLightText("正在使用挖掘机进行移山", "挖掘机"));
+                }
+
                 break;
         }
     }

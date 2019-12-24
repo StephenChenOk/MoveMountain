@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:padding="20dp"
-        android:text="您使用的工具有点小题大作了"
+        android:text="移山完成，恭喜少侠"
         android:textColor="#E43838"
         android:textSize="20sp" />
 

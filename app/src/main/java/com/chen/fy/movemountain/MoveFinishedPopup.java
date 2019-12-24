@@ -7,14 +7,17 @@ import androidx.annotation.NonNull;
 
 import com.lxj.xpopup.core.PositionPopupView;
 
-public class GameOverPopup extends PositionPopupView {
+public class MoveFinishedPopup extends PositionPopupView {
 
-    public GameOverPopup(@NonNull Context context) {
+    //移山是否结束
+    private boolean isFinish;
+
+    public MoveFinishedPopup(@NonNull Context context) {
         super(context);
     }
 
     @Override
     protected int getImplLayoutId() {
-        return R.layout.game_over_layout;
+        return R.layout.game_over_finished_layout;
     }
 }
