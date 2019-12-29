@@ -15,10 +15,29 @@
         android:textSize="20sp" />
 
     <TextView
+        android:id="@+id/tv_times"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="10dp"
+        android:text="总共移山次数:12"
+        android:textColor="#222"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/tv_scores"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="获得分数：100"
+        android:textColor="#222"
+        android:textSize="18sp" />
+
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:text="点击弹窗外任意处重新开始"
-        android:layout_marginBottom="20dp"
+        android:layout_marginTop="30dp"
         android:textSize="16sp" />
 </LinearLayout>

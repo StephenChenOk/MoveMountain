@@ -49,7 +49,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private float chartWeight;
 
     //移山次数
-    int moveTimes;
+    public static int moveTimes;
+    public static int wajuejiTimes;
+    public static int yunnicheTimes;
+    public static int chanziTimes;
+    public static int shouTimes;
 
     //山大小的缩放大小起始设置
     private float fromX;
@@ -104,6 +108,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         chartWeight = mRemainWeight + 100;
 
         moveTimes = 0;
+        wajuejiTimes = 0;
+        yunnicheTimes = 0;
+        chanziTimes = 0;
+        shouTimes = 0;
 
         fromX = 1.0f;
         fromY = 1.0f;
@@ -367,13 +375,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 rgBottom.clearCheck();
                 if (toolShou.getWeight() > mRemainWeight) {
                     reduceMountain(mRemainWeight);
+                    tvContent.setText(UiUtils.highLightText("正在手工进行移山", "手工"));
+                    shouTimes++;
                 } else if (toolChan.getWeight() < mRemainWeight) {
                     gameOver(3);
                 } else {
                     reduceMountain(toolShou.getWeight());
+                    tvContent.setText(UiUtils.highLightText("正在手工进行移山", "手工"));
+                    shouTimes++;
                 }
-                tvContent.setText(UiUtils.highLightText("正在手工进行移山", "手工"));
-
                 break;
             case R.id.rb_chan:
                 rgBottom.clearCheck();
@@ -384,8 +394,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } else {
                     reduceMountain(toolChan.getWeight());
                     tvContent.setText(UiUtils.highLightText("正在使用铲子进行移山", "铲子"));
+                    chanziTimes++;
                 }
-
                 break;
             case R.id.rb_che:
                 rgTop.clearCheck();
@@ -396,8 +406,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } else {
                     reduceMountain(toolYunNiChe.getWeight());
                     tvContent.setText(UiUtils.highLightText("正在使用运泥车进行移山", "运泥车"));
+                    yunnicheTimes++;
                 }
-
                 break;
             case R.id.rb_wa_jue_ji:
                 rgTop.clearCheck();
@@ -406,8 +416,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } else {
                     reduceMountain(toolWaJueJi.getWeight());
                     tvContent.setText(UiUtils.highLightText("正在使用挖掘机进行移山", "挖掘机"));
+                    wajuejiTimes++;
                 }
-
                 break;
         }
     }
