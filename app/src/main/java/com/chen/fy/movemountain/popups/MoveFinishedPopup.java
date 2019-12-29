@@ -1,10 +1,11 @@
-package com.chen.fy.movemountain;
+package com.chen.fy.movemountain.popups;
 
 import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.chen.fy.movemountain.R;
 import com.lxj.xpopup.core.PositionPopupView;
 
 public class MoveFinishedPopup extends PositionPopupView {

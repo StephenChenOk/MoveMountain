@@ -1,4 +1,4 @@
-package com.chen.fy.movemountain;
+package com.chen.fy.movemountain.utils;
 
 import android.app.Activity;
 import android.graphics.Color;

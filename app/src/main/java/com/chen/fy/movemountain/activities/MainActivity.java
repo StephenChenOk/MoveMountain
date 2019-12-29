@@ -1,16 +1,21 @@
-package com.chen.fy.movemountain;
+package com.chen.fy.movemountain.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.ScaleAnimation;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import com.chen.fy.movemountain.objects.Tool;
+import com.chen.fy.movemountain.popups.MoveFinishedPopup;
+import com.chen.fy.movemountain.R;
+import com.chen.fy.movemountain.popups.TooBigPopup;
+import com.chen.fy.movemountain.popups.TooSmallPopup;
+import com.chen.fy.movemountain.utils.UiUtils;
 import com.github.mikephil.charting.charts.HorizontalBarChart;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
@@ -28,13 +33,10 @@ import java.util.Random;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private TextView tvContent;
-    private RadioButton rbShou;
-    private RadioButton rbChan;
-    private RadioButton rbChe;
-    private RadioButton rbWaJueJi;
+    private RadioGroup rgTop;
+    private RadioGroup rgBottom;
 
     private ImageView ivMountain;
-    private Button btnMove;
 
     private HorizontalBarChart chart;
 
@@ -55,28 +57,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private float toX;
     private float toY;
 
+    //工具
+    private Tool toolShou;
+    private Tool toolChan;
+    private Tool toolYunNiChe;
+    private Tool toolWaJueJi;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initView();
         initBar();
+        initTools();
     }
 
     private void initView() {
 
         UiUtils.changeStatusBarTextImgColor(this, true);
 
+        rgTop = findViewById(R.id.rg_top);
+        rgBottom = findViewById(R.id.rg_bottom);
+
         tvContent = findViewById(R.id.tv_content);
-        rbShou = findViewById(R.id.rb_shou);
-        rbChan = findViewById(R.id.rb_chan);
-        rbChe = findViewById(R.id.rb_che);
-        rbWaJueJi = findViewById(R.id.rb_wa_jue_ji);
+        RadioButton rbShou = findViewById(R.id.rb_shou);
+        RadioButton rbChan = findViewById(R.id.rb_chan);
+        RadioButton rbChe = findViewById(R.id.rb_che);
+        RadioButton rbWaJueJi = findViewById(R.id.rb_wa_jue_ji);
 
         ivMountain = findViewById(R.id.iv_mountain);
-        btnMove = findViewById(R.id.btn_move);
-
-        btnMove.setOnClickListener(this);
 
         rbShou.setOnClickListener(this);
         rbChan.setOnClickListener(this);
@@ -102,6 +111,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         toY = (float) (fromY - 0.2);
     }
 
+    private void initTools() {
+        toolShou = new Tool("手工");
+        toolChan = new Tool("铲子");
+        toolYunNiChe = new Tool("运泥车");
+        toolWaJueJi = new Tool("挖掘机");
+    }
+
     /**
      * 减少山的大小
      */
@@ -116,37 +132,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (mRemainWeight == 0) {
             ivMountain.clearAnimation();
             ivMountain.setVisibility(View.GONE);
-            gameOver(true);
+            gameOver(1);
         } else {
             setMountainLayout();
         }
 
         //重新绘制柱状图
         setData();
-    }
-
-    private void selectTool(int i) {
-        switch (i) {
-            case 0:
-            case 1:
-            case 2:     //8
-                rbShou.setChecked(true);
-                tvContent.setText(UiUtils.highLightText("正在手工进行移山", "手工"));
-                break;
-            case 3:
-            case 4:     //16
-                rbChan.setChecked(true);
-                tvContent.setText(UiUtils.highLightText("正在使用铲子进行移山", "铲子"));
-                break;
-            case 5:
-            case 6:     //64
-                rbChe.setChecked(true);
-                tvContent.setText(UiUtils.highLightText("正在使用运泥车进行移山", "运泥车"));
-                break;
-            default:
-                rbWaJueJi.setChecked(true);
-                tvContent.setText(UiUtils.highLightText("正在使用挖掘机进行移山", "挖掘机"));
-        }
     }
 
     private void setMountainLayout() {
@@ -218,15 +210,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //设置动画效果
     private void startAnimation(float fromX, float toX, float fromY, float toY) {
         ScaleAnimation scaleAnimation = new ScaleAnimation(fromX, toX, fromY, toY,
-                ivMountain.getPivotX(), ivMountain.getPivotY());
+                ivMountain.getPivotX(), ivMountain.getHeight());
         scaleAnimation.setDuration(2000);
         scaleAnimation.setFillAfter(true);
         ivMountain.startAnimation(scaleAnimation);
-
-//        AnimationDrawable animationDrawable = (AnimationDrawable) getResources().getDrawable(R.drawable.man_play);
-//        //ivMan.setImageDrawable(animationDrawable);
-//        animationDrawable.start();
-//        animationDrawable.setOneShot(true);  //播放一次
     }
 
     private void setData() {
@@ -264,24 +251,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         chart.notifyDataSetChanged();
         chart.animateY(2000);
         chart.invalidate();
+
+        tvContent.setText(UiUtils.highLightText("请选择最合适的工具进行移山", "工具"));
     }
 
-    //获取距离目标最近的2的多少次方
-    private int getIndex(int remain) {
-        int i = -1;
-        while (true) {
-            i++;
-            int f = (int) Math.pow(2, i);
-            if (f > remain) {
-                i--;
-                break;
-            }
-        }
-        return i;
-    }
-
-    //移山结束，点击可以重新开始
-    private void gameOver(boolean isFinish) {
+    /**
+     * 游戏结束
+     *
+     * @param type 1：移山完成；2：工具太大了；3：工具太小气
+     */
+    private void gameOver(int type) {
 
         XPopup.Builder builder = new XPopup.Builder(this)
                 .isCenterHorizontal(true)
@@ -297,9 +276,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                     @Override
                     public void onDismiss() {
-                        initWeight();
+                        initBar();
                         setMountainLayout();
-                        setData();
                         ivMountain.setVisibility(View.VISIBLE);
                     }
 
@@ -309,13 +287,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
 
                 });
-        if (isFinish) {
-            builder.asCustom(new MoveFinishedPopup(this))
-                    .show();
-        }else{
-            builder.asCustom(new GameOverPopup(this))
-                    .show();
+        switch (type) {      //移山完成
+            case 1:
+                builder.asCustom(new MoveFinishedPopup(this))
+                        .show();
+                break;
+            case 2:         //小题大作了
+                builder.asCustom(new TooBigPopup(this))
+                        .show();
+                break;
+            case 3:        //移到猴年马月
+                builder.asCustom(new TooSmallPopup(this))
+                        .show();
+                break;
         }
+
     }
 
     private void initBar() {
@@ -374,50 +360,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setData();
     }
 
-    //工具最多可以挖的权值
-    private int shouIndex = 2;      //4
-    private int chanIndex = 4;      //16
-    private int cheIndex = 6;       //64
-    private int waJueJiIndex = 8;        //256
-
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.btn_move:
-                //reduceMountain();
-                break;
             case R.id.rb_shou:
-                if (shouIndex > getIndex(mRemainWeight)) {
+                rgBottom.clearCheck();
+                if (toolShou.getWeight() > mRemainWeight) {
                     reduceMountain(mRemainWeight);
+                } else if (toolChan.getWeight() < mRemainWeight) {
+                    gameOver(3);
                 } else {
-                    reduceMountain(Math.pow(2, shouIndex));
+                    reduceMountain(toolShou.getWeight());
                 }
                 tvContent.setText(UiUtils.highLightText("正在手工进行移山", "手工"));
 
                 break;
             case R.id.rb_chan:
-                if (chanIndex > getIndex(mRemainWeight)) {
-                    gameOver(false);
+                rgBottom.clearCheck();
+                if (toolChan.getWeight() > mRemainWeight) {
+                    gameOver(2);
+                } else if (toolYunNiChe.getWeight() < mRemainWeight) {
+                    gameOver(3);
                 } else {
-                    reduceMountain(Math.pow(2, chanIndex));
+                    reduceMountain(toolChan.getWeight());
                     tvContent.setText(UiUtils.highLightText("正在使用铲子进行移山", "铲子"));
                 }
 
                 break;
             case R.id.rb_che:
-                if (cheIndex > getIndex(mRemainWeight)) {
-                    gameOver(false);
+                rgTop.clearCheck();
+                if (toolYunNiChe.getWeight() > mRemainWeight) {
+                    gameOver(2);
+                } else if (toolWaJueJi.getWeight() < mRemainWeight) {
+                    gameOver(3);
                 } else {
-                    reduceMountain(Math.pow(2, cheIndex));
+                    reduceMountain(toolYunNiChe.getWeight());
                     tvContent.setText(UiUtils.highLightText("正在使用运泥车进行移山", "运泥车"));
                 }
 
                 break;
             case R.id.rb_wa_jue_ji:
-                if (waJueJiIndex > getIndex(mRemainWeight)) {
-                    gameOver(false);
+                rgTop.clearCheck();
+                if (toolWaJueJi.getWeight() > mRemainWeight) {
+                    gameOver(2);
                 } else {
-                    reduceMountain(Math.pow(2, waJueJiIndex));
+                    reduceMountain(toolWaJueJi.getWeight());
                     tvContent.setText(UiUtils.highLightText("正在使用挖掘机进行移山", "挖掘机"));
                 }
 
